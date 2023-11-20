@@ -8,7 +8,6 @@ import {
   ChannelType,
   Events,
 } from 'discord.js';
-import { reuploadCommands } from './_reupload';
 import {
   connect as connectStorage,
   isUserPlural,
@@ -20,14 +19,6 @@ import { parseLog } from './logs';
 import { getLatestMinecraftVersion } from './utils/remoteVersions';
 import { expandDiscordLink } from './utils/resolveMessage';
 
-import { membersCommand } from './commands/members';
-import { starsCommand } from './commands/stars';
-import { modrinthCommand } from './commands/modrinth';
-import { tagsCommand } from './commands/tags';
-import { jokeCommand } from './commands/joke';
-import { roryCommand } from './commands/rory';
-import { sayCommand } from './commands/say';
-
 import random from 'just-random';
 import { green, bold, yellow, cyan } from 'kleur/colors';
 import 'dotenv/config';
@@ -36,6 +27,8 @@ import {
   isMessageProxied,
   pkDelay,
 } from './utils/pluralKit';
+import { handleMessage } from './commands/handler/prefix';
+import { handleInteraction, uploadCommands } from './commands/handler/slash';
 
 const client = new Client({
   intents: [
@@ -48,6 +41,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildModeration,
   ],
+  allowedMentions: { parse: [] },
   partials: [Partials.Channel],
 });
 
@@ -101,10 +95,14 @@ client.once('ready', async () => {
       if (e.webhookId !== null) {
         // defer PK detection
         setTimeout(async () => {
-          const pkMessage = await fetchPluralKitMessage(e);
-          if (pkMessage !== null) storeUserPlurality(pkMessage.sender);
+          try {
+            const pkMessage = await fetchPluralKitMessage(e);
+            if (pkMessage !== null) storeUserPlurality(pkMessage.sender);
+          } catch (e) {}
         }, pkDelay);
       }
+
+      if (await handleMessage(e)) return;
 
       if ((await isUserPlural(e.author.id)) && (await isMessageProxied(e)))
         return;
@@ -128,30 +126,8 @@ client.once('ready', async () => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
-    if (!interaction.isChatInputCommand()) return;
-
-    const { commandName } = interaction;
-
-    if (commandName === 'ping') {
-      await interaction.reply({
-        content: `Pong! \`${client.ws.ping}ms\``,
-        ephemeral: true,
-      });
-    } else if (commandName === 'members') {
-      await membersCommand(interaction);
-    } else if (commandName === 'stars') {
-      await starsCommand(interaction);
-    } else if (commandName === 'modrinth') {
-      await modrinthCommand(interaction);
-    } else if (commandName === 'say') {
-      await sayCommand(interaction);
-    } else if (commandName === 'tag') {
-      await tagsCommand(interaction);
-    } else if (commandName === 'joke') {
-      await jokeCommand(interaction);
-    } else if (commandName === 'rory') {
-      await roryCommand(interaction);
-    }
+    if (!interaction.isCommand()) return;
+    await handleInteraction(interaction);
   } catch (error) {
     console.error('Unhandled exception on InteractionCreate', error);
   }
@@ -212,12 +188,13 @@ client.on(Events.ThreadCreate, async (channel) => {
   }
 });
 
-reuploadCommands()
-  .then(() => {
+(async () => {
+  try {
     connectStorage();
-    client.login(process.env.DISCORD_TOKEN);
-  })
-  .catch((e) => {
+    await uploadCommands();
+    await client.login(process.env.DISCORD_TOKEN);
+  } catch (e) {
     console.error(e);
     process.exit(1);
-  });
+  }
+})();

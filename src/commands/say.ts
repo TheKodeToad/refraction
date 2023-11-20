@@ -1,37 +1,44 @@
-import {
-  CacheType,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-} from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
+import { FlagType, defineCommand } from './types';
 
-export const sayCommand = async (
-  interaction: ChatInputCommandInteraction<CacheType>
-) => {
-  if (!interaction.guild || !interaction.channel) return;
+export default defineCommand({
+  name: 'say',
+  description: 'Say something through the bot',
+  primaryFlag: {
+    name: 'content',
+    description: 'the content',
+    required: true,
+    type: FlagType.STRING,
+  },
+  async execute(context, args) {
+    if (!context.member) return;
+    if (!context.member.permissions.has("BanMembers")) return;
 
-  const content = interaction.options.getString('content', true);
-  await interaction.deferReply({ ephemeral: true });
-  const message = await interaction.channel.send(content);
-  await interaction.editReply('I said what you said!');
+    if (context.message) context.message.delete();
 
-  if (process.env.SAY_LOGS_CHANNEL) {
-    const logsChannel = await interaction.guild.channels.fetch(
-      process.env.SAY_LOGS_CHANNEL
-    );
+    const content = args.content;
+    const message = await context.channel.send(content);
 
-    if (!logsChannel?.isTextBased()) return;
+    if (process.env.SAY_LOGS_CHANNEL) {
+      const logsChannel = await context.guild?.channels.fetch(
+        process.env.SAY_LOGS_CHANNEL
+      );
 
-    await logsChannel.send({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle('Say command used')
-          .setDescription(content)
-          .setAuthor({
-            name: interaction.user.tag,
-            iconURL: interaction.user.avatarURL() ?? undefined,
-          })
-          .setURL(message.url),
-      ],
-    });
-  }
-};
+      if (!logsChannel?.isTextBased()) return;
+
+      await logsChannel.send({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('Say command used')
+            .setDescription(content)
+            .setAuthor({
+              name: context.user.tag ?? '',
+              iconURL: context.user.avatarURL() ?? undefined,
+            })
+            .setURL(message.url),
+        ],
+        allowedMentions: { parse: ['users'] },
+      });
+    }
+  },
+});

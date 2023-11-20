@@ -14,111 +14,103 @@ export interface ModrinthProject {
   team: string;
 }
 
-import {
-  EmbedBuilder,
-  type CacheType,
-  type ChatInputCommandInteraction,
-} from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 
 import { COLORS } from '../constants';
+import { FlagType, defineCommand } from './types';
 
-export const modrinthCommand = async (
-  i: ChatInputCommandInteraction<CacheType>
-) => {
-  await i.deferReply();
+export default defineCommand({
+  name: 'modrinth',
+  description: 'Get info on a Modrinth project',
+  primaryFlag: {
+    name: 'id',
+    description: 'the project ID or slug',
+    required: true,
+    type: FlagType.STRING,
+  },
+  async execute(context, args) {
+    const { id } = args;
 
-  const { value: id } = i.options.get('id') ?? { value: null };
+    if (!id || typeof id !== 'string') {
+      await context.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('Error!')
+            .setDescription('You need to provide a valid mod ID!')
+            .setColor(COLORS.red),
+        ],
+      });
+      return;
+    }
 
-  if (!id || typeof id !== 'string') {
-    await i.editReply({
+    const res = await fetch('https://api.modrinth.com/v2/project/' + id);
+
+    if (!res.ok) {
+      await context.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('Error!')
+            .setDescription('Not found!')
+            .setColor(COLORS.red),
+        ],
+      });
+      return;
+    }
+
+    const data = (await res.json()) as
+      | ModrinthProject
+      | { error: string; description: string };
+
+    if ('error' in data) {
+      console.error(data);
+
+      await context.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('Error!')
+            .setDescription(`\`${data.error}\` ${data.description}`)
+            .setColor(COLORS.red),
+        ],
+      });
+      return;
+    }
+
+    await context.reply({
       embeds: [
         new EmbedBuilder()
-          .setTitle('Error!')
-          .setDescription('You need to provide a valid mod ID!')
-          .setColor(COLORS.red),
+          .setTitle(data.title)
+          .setDescription(data.description)
+          .setThumbnail(data.icon_url)
+          .setURL(`https://modrinth.com/project/${data.slug}`)
+          .setFields([
+            {
+              name: 'Categories',
+              value: data.categories.join(', '),
+              inline: true,
+            },
+            {
+              name: 'Project type',
+              value: data.project_type,
+              inline: true,
+            },
+            {
+              name: 'Downloads',
+              value: data.downloads.toString(),
+              inline: true,
+            },
+            {
+              name: 'Client',
+              value: data.client_side,
+              inline: true,
+            },
+            {
+              name: 'Server',
+              value: data.server_side,
+              inline: true,
+            },
+          ])
+          .setColor(COLORS.green),
       ],
     });
-
-    return;
-  }
-
-  const res = await fetch('https://api.modrinth.com/v2/project/' + id);
-
-  if (!res.ok) {
-    await i.editReply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle('Error!')
-          .setDescription('Not found!')
-          .setColor(COLORS.red),
-      ],
-    });
-
-    setTimeout(() => {
-      i.deleteReply();
-    }, 3000);
-
-    return;
-  }
-
-  const data = (await res.json()) as
-    | ModrinthProject
-    | { error: string; description: string };
-
-  if ('error' in data) {
-    console.error(data);
-
-    await i.editReply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle('Error!')
-          .setDescription(`\`${data.error}\` ${data.description}`)
-          .setColor(COLORS.red),
-      ],
-    });
-
-    setTimeout(() => {
-      i.deleteReply();
-    }, 3000);
-
-    return;
-  }
-
-  await i.editReply({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle(data.title)
-        .setDescription(data.description)
-        .setThumbnail(data.icon_url)
-        .setURL(`https://modrinth.com/project/${data.slug}`)
-        .setFields([
-          {
-            name: 'Categories',
-            value: data.categories.join(', '),
-            inline: true,
-          },
-          {
-            name: 'Project type',
-            value: data.project_type,
-            inline: true,
-          },
-          {
-            name: 'Downloads',
-            value: data.downloads.toString(),
-            inline: true,
-          },
-          {
-            name: 'Client',
-            value: data.client_side,
-            inline: true,
-          },
-          {
-            name: 'Server',
-            value: data.server_side,
-            inline: true,
-          },
-        ])
-        .setColor(COLORS.green),
-    ],
-  });
-};
+  },
+});

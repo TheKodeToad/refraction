@@ -1,5 +1,5 @@
-import type { CacheType, ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
+import { FlagType, defineCommand } from './types';
 
 export interface RoryResponse {
   /**
@@ -16,36 +16,40 @@ export interface RoryResponse {
   error: string | undefined;
 }
 
-export const roryCommand = async (
-  i: ChatInputCommandInteraction<CacheType>
-) => {
-  await i.deferReply();
+export default defineCommand({
+  name: 'rory',
+  description: 'Gets a rory photo!',
+  primaryFlag: {
+    name: 'id',
+    description: 'specify a Rory ID',
+    type: FlagType.NUMBER,
+  },
+  async execute(context, args) {
+    const id = args.id ?? "";
 
-  const { value: id } = i.options.get('id') ?? { value: '' };
+    const rory: RoryResponse = await fetch(`https://rory.cat/purr/${id}`, {
+      headers: { Accept: 'application/json' },
+    }).then((r) => r.json());
 
-  const rory: RoryResponse = await fetch(`https://rory.cat/purr/${id}`, {
-    headers: { Accept: 'application/json' },
-  }).then((r) => r.json());
+    if (rory.error) {
+      await context.reply({
+        embeds: [
+          new EmbedBuilder().setTitle('Error!').setDescription(rory.error),
+        ],
+      });
+      return;
+    }
 
-  if (rory.error) {
-    await i.editReply({
+    await context.reply({
       embeds: [
-        new EmbedBuilder().setTitle('Error!').setDescription(rory.error),
+        new EmbedBuilder()
+          .setTitle('Rory :3')
+          .setURL(`https://rory.cat/id/${rory.id}`)
+          .setImage(rory.url)
+          .setFooter({
+            text: `ID ${rory.id}`,
+          }),
       ],
     });
-
-    return;
-  }
-
-  await i.editReply({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle('Rory :3')
-        .setURL(`https://rory.cat/id/${rory.id}`)
-        .setImage(rory.url)
-        .setFooter({
-          text: `ID ${rory.id}`,
-        }),
-    ],
-  });
-};
+  },
+});

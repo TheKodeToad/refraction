@@ -1,11 +1,13 @@
-import type { CacheType, ChatInputCommandInteraction } from 'discord.js';
+import { defineCommand } from './types';
 
-export const jokeCommand = async (
-  i: ChatInputCommandInteraction<CacheType>
-) => {
-  await i.deferReply();
-  const joke = await fetch('https://icanhazdadjoke.com', {
-    headers: { Accept: 'text/plain' },
-  }).then((r) => r.text());
-  await i.editReply(joke);
-};
+export default defineCommand({
+  name: 'joke',
+  description: "It's a joke",
+  deferred: true,
+  async execute(context) {
+    const joke = await fetch('https://icanhazdadjoke.com', {
+      headers: { Accept: 'text/plain' },
+    }).then((r) => r.text());
+    await context.reply(joke);
+  },
+});

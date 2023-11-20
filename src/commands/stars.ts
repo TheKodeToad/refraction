@@ -1,23 +1,24 @@
-import type { CacheType, ChatInputCommandInteraction } from 'discord.js';
 import { COLORS } from '../constants';
+import { defineCommand } from './types';
 
-export const starsCommand = async (
-  i: ChatInputCommandInteraction<CacheType>
-) => {
-  await i.deferReply();
+export default defineCommand({
+  name: 'stars',
+  description: 'Returns GitHub stargazer count',
+  deferred: true,
+  async execute(context) {
+    const count = await fetch(
+      'https://api.github.com/repos/PrismLauncher/PrismLauncher'
+    )
+      .then((r) => r.json() as Promise<{ stargazers_count: number }>)
+      .then((j) => j.stargazers_count);
 
-  const count = await fetch(
-    'https://api.github.com/repos/PrismLauncher/PrismLauncher'
-  )
-    .then((r) => r.json() as Promise<{ stargazers_count: number }>)
-    .then((j) => j.stargazers_count);
-
-  await i.editReply({
-    embeds: [
-      {
-        title: `⭐ ${count} total stars!`,
-        color: COLORS.yellow,
-      },
-    ],
-  });
-};
+    await context.reply({
+      embeds: [
+        {
+          title: `⭐ ${count} total stars!`,
+          color: COLORS.yellow,
+        },
+      ],
+    });
+  },
+});
