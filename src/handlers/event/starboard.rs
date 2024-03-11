@@ -136,15 +136,14 @@ pub async fn update(
 	} else if let Some(image) = source
 		.embeds
 		.iter()
-		.filter(|e| e.kind.as_ref().map(|k| k == "image").unwrap_or(false))
+		.filter(|e| e.kind.as_ref().map(|k| k == "image").unwrap_or(false)) // FIXME usage of embed type is deprecated
 		.next()
 	{
 		embed = embed.image(
-			&image
-				.image
+			image
+				.url
 				.as_ref()
-				.ok_or_eyre("Missing url on image embed")?
-				.url,
+				.ok_or_eyre("Missing image URL in embed")?,
 		);
 	}
 
@@ -335,7 +334,7 @@ fn format_content(
 			Ok(format!(
 				"{mention} just Boosted the server! {guild_name} has reached **Level {level}!**"
 			))
-		},
+		}
 
 		MessageType::ThreadCreated => {
 			let message_reference = message
@@ -343,7 +342,11 @@ fn format_content(
 				.as_ref()
 				.ok_or_eyre("Missing reference")?;
 
-			Ok(format!("{} started a thread: <#{}>.", message.author.mention(), message_reference.channel_id))
+			Ok(format!(
+				"{} started a thread: <#{}>.",
+				message.author.mention(),
+				message_reference.channel_id
+			))
 		}
 
 		_ => Ok("❓ Unrecognized message type".to_string()),
