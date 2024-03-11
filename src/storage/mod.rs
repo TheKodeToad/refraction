@@ -7,6 +7,7 @@ use redis::{AsyncCommands, Client};
 
 const PK_KEY: &str = "pluralkit-v1";
 const LAUNCHER_VERSION_KEY: &str = "launcher-version-v1";
+const STARBOARD_KEY: &str = "starboard-v1";
 
 #[derive(Clone, Debug)]
 pub struct Storage {
@@ -64,6 +65,37 @@ impl Storage {
 
 		let mut con = self.client.get_async_connection().await?;
 		let res = con.get(LAUNCHER_VERSION_KEY).await?;
+
+		Ok(res)
+	}
+
+	pub async fn store_starboard_post(&self, src: &str, post: &str) -> Result<()> {
+		debug!("Marking starboard post for {} as {}", src, post);
+		let key = format!("{STARBOARD_KEY}:{src}");
+
+		let mut con = self.client.get_async_connection().await?;
+		con.set(key, post).await?;
+
+		Ok(())
+	}
+
+	pub async fn delete_starboard_post(&self, src: &str) -> Result<()> {
+		debug!("Deleting starboard post for {}", src);
+
+		let key = format!("{STARBOARD_KEY}:{src}");
+
+		let mut con = self.client.get_async_connection().await?;
+		con.del(key).await?;
+
+		Ok(())
+	}
+
+	pub async fn get_starboard_post(&self, src: &str) -> Result<Option<String>> {
+		debug!("Retrieving starboard post for {}", src);
+		let key = format!("{STARBOARD_KEY}:{src}");
+
+		let mut con = self.client.get_async_connection().await?;
+		let res = con.get(key).await?;
 
 		Ok(res)
 	}

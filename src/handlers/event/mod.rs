@@ -9,6 +9,7 @@ mod analyze_logs;
 mod delete_on_reaction;
 mod eta;
 pub mod pluralkit;
+mod starboard;
 mod support_onboard;
 
 pub async fn handle(
@@ -52,6 +53,39 @@ pub async fn handle(
 
 		FullEvent::ReactionAdd { add_reaction } => {
 			delete_on_reaction::handle(ctx, add_reaction).await?;
+			starboard::update(
+				ctx,
+				add_reaction.guild_id,
+				&ctx.http
+					.get_message(add_reaction.channel_id, add_reaction.message_id)
+					.await?,
+				data,
+			)
+			.await?;
+		}
+
+		FullEvent::ReactionRemove { removed_reaction } => {
+			starboard::update(
+				ctx,
+				removed_reaction.guild_id,
+				&ctx.http
+					.get_message(removed_reaction.channel_id, removed_reaction.message_id)
+					.await?,
+				data,
+			)
+			.await?;
+		}
+
+		FullEvent::ReactionRemoveEmoji { removed_reactions } => {
+			starboard::update(
+				ctx,
+				removed_reactions.guild_id,
+				&ctx.http
+					.get_message(removed_reactions.channel_id, removed_reactions.message_id)
+					.await?,
+				data,
+			)
+			.await?;
 		}
 
 		FullEvent::ThreadCreate { thread } => {

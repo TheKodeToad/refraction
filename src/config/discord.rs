@@ -6,6 +6,7 @@ use poise::serenity_prelude::ChannelId;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct RefractionChannels {
 	say_log_channel_id: Option<ChannelId>,
+	starboard_channel_id: Option<ChannelId>,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -14,8 +15,8 @@ pub struct Config {
 }
 
 impl RefractionChannels {
-	pub fn new(say_log_channel_id: Option<ChannelId>) -> Self {
-		Self { say_log_channel_id }
+	pub fn new(say_log_channel_id: Option<ChannelId>, starboard_channel_id: Option<ChannelId>) -> Self {
+		Self { say_log_channel_id, starboard_channel_id }
 	}
 
 	pub fn new_from_env() -> Self {
@@ -27,7 +28,15 @@ impl RefractionChannels {
 			warn!("DISCORD_SAY_LOG_CHANNELID is empty; this will disable logging in your server.");
 		}
 
-		Self::new(say_log_channel_id)
+		let starboard_channel_id = Self::get_channel_from_env("DISCORD_STARBOARD_CHANNELID");
+
+		if let Some(channel_id) = starboard_channel_id {
+			info!("Starboard channel is {channel_id}");
+		} else {
+			warn!("DISCORD_STARBOARD_CHANNELID is empty; this will disable logging in your server.");
+		}
+
+		Self::new(say_log_channel_id, starboard_channel_id)
 	}
 
 	fn get_channel_from_env(var: &str) -> Option<ChannelId> {
@@ -38,6 +47,10 @@ impl RefractionChannels {
 
 	pub fn say_log_channel_id(self) -> Option<ChannelId> {
 		self.say_log_channel_id
+	}
+
+	pub fn starboard_channel_id(self) -> Option<ChannelId> {
+		self.starboard_channel_id
 	}
 }
 

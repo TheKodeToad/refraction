@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
 		std::env::var("DISCORD_BOT_TOKEN").wrap_err("Couldn't find bot token in environment!")?;
 
 	let intents =
-		serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+		serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT | serenity::GatewayIntents::GUILD_MESSAGE_REACTIONS;
 
 	let options = FrameworkOptions {
 		commands: commands::get(),

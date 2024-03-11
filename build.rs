@@ -52,8 +52,7 @@ fn main() {
     pub enum Choice {{
     {}
     }}"#,
-        tags
-			.iter()
+		tags.iter()
 			.map(|t| format!("#[name = \"{}\"]\n{}", t.id, t.id.replace('-', "_")))
 			.collect::<Vec<String>>()
 			.join(",\n")
@@ -69,11 +68,8 @@ fn main() {
     }}
     }}
     "#,
-        tags
-			.iter()
-			.map(|t| {
-				format!("Self::{} => \"{}\",", t.id.replace('-', "_"), t.id)
-			})
+		tags.iter()
+			.map(|t| { format!("Self::{} => \"{}\",", t.id.replace('-', "_"), t.id) })
 			.collect::<Vec<String>>()
 			.join("\n")
 	);
