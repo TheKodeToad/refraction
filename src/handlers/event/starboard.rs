@@ -252,13 +252,11 @@ fn format_content(
 			} else if message.message_reference.is_some() {
 				result += "> *Original message was deleted*\n\n";
 			} else if let Some(interaction) = message.interaction.as_ref() {
-				let name = if message.kind == MessageType::ContextMenuCommand {
-					format!("/{}", interaction.name)
-				} else {
-					interaction.name.clone()
-				};
-
-				result += &format!("> {} used {}\n\n", interaction.user.mention(), name);
+				result += &format!(
+					"> {} used {}\n\n",
+					interaction.user.mention(),
+					interaction.name
+				);
 			}
 
 			if !message.content.is_empty() {
