@@ -4,14 +4,11 @@
 
 use std::sync::Arc;
 
-
 use eyre::{eyre, Context as _, Report, Result};
 use log::{info, trace, warn};
 
 use octocrab::Octocrab;
-use poise::{
-	serenity_prelude as serenity, Framework, FrameworkOptions,
-};
+use poise::{serenity_prelude as serenity, Framework, FrameworkOptions};
 
 use owo_colors::OwoColorize;
 use redis::ConnectionLike;
@@ -93,8 +90,9 @@ async fn main() -> Result<()> {
 	let token =
 		std::env::var("DISCORD_BOT_TOKEN").wrap_err("Couldn't find bot token in environment!")?;
 
-	let intents =
-		serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT | serenity::GatewayIntents::GUILD_MESSAGE_REACTIONS;
+	let intents = serenity::GatewayIntents::non_privileged()
+		| serenity::GatewayIntents::MESSAGE_CONTENT
+		| serenity::GatewayIntents::GUILD_MESSAGE_REACTIONS;
 
 	let options = FrameworkOptions {
 		commands: commands::get(),
@@ -117,7 +115,11 @@ async fn main() -> Result<()> {
 		.setup(|ctx, ready, framework| Box::pin(setup(ctx, ready, framework)))
 		.build();
 
+	let mut cache_settings = serenity::cache::Settings::default();
+	cache_settings.max_messages = 30;
+
 	let mut client = serenity::ClientBuilder::new(token, intents)
+		.cache_settings(cache_settings)
 		.framework(framework)
 		.await?;
 
